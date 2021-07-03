@@ -30,36 +30,39 @@ const die = (rect: Rect) => () => {
 const author = { author: "Mirco Kraenz" };
 
 export class MainScene extends Scene {
+    // using definite assignment operator + initialization in create() so that on restart() everything gets newly initiated automatically
     private gui!: GUI;
-    private generation = 0;
-    private grid: Rect[][] = [];
-    private history: boolean[][][] = [[]]; // complete history of the grid, history[1] is the grid after 1 iteration
-    private stepSize = 1;
+    private generation!: number;
+    private grid!: Rect[][];
+    private history!: boolean[][][]; // complete history of the grid, history[1] is the grid after 1 iteration
+    private stepSize!: number;
 
     public constructor() {
         super({ key: Scenes.Main });
     }
 
     public create(): void {
+        this.generation = 0;
+        this.grid = [];
+        this.history = [[]];
+        this.stepSize = 1;
         this.input.keyboard.on("keydown-R", () => this.restart());
 
         this.initGrid();
+        this.setupGUI();
+    }
 
+    private setupGUI() {
         this.gui = new GUI({ closeOnTop: true, hideable: true });
         this.gui.add(this, "nextTick").name("single tick()");
         this.gui.add(this, "stepSize", 1, 100).step(1).name("step size");
         this.gui.add(this, "manyTicks").name("many ticks()");
-        const about = this.gui.addFolder("about");
+        const more = this.gui.addFolder("more");
 
-        about.add(author, "author");
-        about.add(this, "gotoGithubRepo").name("open GitHub Repo");
-    }
-
-    public gotoGithubRepo() {
-        window.open(
-            "https://github.com/proSingularity/conways-game-of-life",
-            "_blank"
-        );
+        more.add(this, "restart").name("reset all()");
+        more.add(author, "author");
+        more.add(this, "gotoGithubRepo").name("open GitHub Repo");
+        more.add(this, "gotoWikipedia").name("patterns on Wiki");
     }
 
     private initGrid() {
@@ -153,6 +156,20 @@ export class MainScene extends Scene {
                 this.history[this.generation][x][y] = this.grid[x][y].alive;
             }
         }
+    }
+
+    public gotoGithubRepo() {
+        window.open(
+            "https://github.com/proSingularity/conways-game-of-life",
+            "_blank"
+        );
+    }
+
+    public gotoWikipedia() {
+        window.open(
+            "https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life#Examples_of_patterns",
+            "_blank"
+        );
     }
 
     private restart() {
