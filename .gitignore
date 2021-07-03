@@ -12,5 +12,5 @@ yarn.lock
 coverage
 .nyc_output
 
-**/*.js
-**/*.d.ts
+src/**/*.js
+src/**/*.d.ts
