@@ -33,6 +33,7 @@ module.exports = {
         "eslint-plugin-react",
         "@typescript-eslint",
     ],
+    ignorePatterns: ["webpack.*config.js"],
     rules: {
         "@typescript-eslint/adjacent-overload-signatures": "error",
         "@typescript-eslint/array-type": [

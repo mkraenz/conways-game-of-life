@@ -34,7 +34,7 @@ export class MainScene extends Scene {
     private generation = 0;
     private grid: Rect[][] = [];
     private history: boolean[][][] = [[]]; // complete history of the grid, history[1] is the grid after 1 iteration
-    private stepSize = 2;
+    private stepSize = 1;
 
     public constructor() {
         super({ key: Scenes.Main });
