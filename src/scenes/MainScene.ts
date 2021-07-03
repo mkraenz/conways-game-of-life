@@ -46,11 +46,13 @@ export class MainScene extends Scene {
         this.initGrid();
 
         this.gui = new GUI({ closeOnTop: true, hideable: true });
-        this.gui.add(author, "author");
         this.gui.add(this, "nextTick").name("single tick()");
         this.gui.add(this, "stepSize", 1, 100).step(1).name("step size");
         this.gui.add(this, "manyTicks").name("many ticks()");
-        this.gui.add(this, "gotoGithubRepo").name("open GitHub Repo");
+        const about = this.gui.addFolder("about");
+
+        about.add(author, "author");
+        about.add(this, "gotoGithubRepo").name("open GitHub Repo");
     }
 
     public gotoGithubRepo() {
