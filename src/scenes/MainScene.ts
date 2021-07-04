@@ -62,9 +62,10 @@ export class MainScene extends Scene {
     private setupGUI() {
         this.gui = new GUI({ closeOnTop: true, hideable: true });
         this.gui.add(this, "nextTick").name("single tick()");
-        // this.gui.add(this, "undo").name("undo()");
+        this.gui.add(this, "undo").name("undo()");
         this.gui.add(this, "stepSize", 1, 100).step(1).name("step size");
         this.gui.add(this, "manyTicks").name("many ticks()");
+        this.gui.add(this, "undoMany").name("undo many()");
         const more = this.gui.addFolder("more");
 
         more.add(this, "restart").name("reset all()");
@@ -103,37 +104,25 @@ export class MainScene extends Scene {
         }
     }
 
+    public undoMany() {
+        for (let i = 0; i < this.stepSize; i++) {
+            this.undo();
+        }
+    }
+
     public nextTick() {
         this.pushCurrentGridToHistory();
 
         this.generation++;
         log(`starting iteration ${this.generation}`);
 
-        const grid = this.history[this.generation - 1];
-        for (let x = 1; x < grid.length - 1; x++) {
-            for (let y = 1; y < grid[0].length - 1; y++) {
+        const prevGrid = this.history[this.generation - 1];
+        for (let x = 1; x < prevGrid.length - 1; x++) {
+            for (let y = 1; y < prevGrid[0].length - 1; y++) {
                 // important manipulate the cell from the next iteration
                 const cell = this.grid[x][y];
 
-                const top = grid[x][y - 1];
-                const right = grid[x + 1][y];
-                const bottom = grid[x][y + 1];
-                const left = grid[x - 1][y];
-                const topLeft = grid[x - 1][y - 1];
-                const topRight = grid[x + 1][y - 1];
-                const bottomRight = grid[x + 1][y + 1];
-                const bottomLeft = grid[x - 1][y + 1];
-                const neightbors = [
-                    top,
-                    right,
-                    bottom,
-                    left,
-                    topLeft,
-                    topRight,
-                    bottomRight,
-                    bottomLeft,
-                ];
-
+                const neightbors = this.getNeighbors(prevGrid, x, y);
                 const aliveNeighbors = neightbors.filter((c) => c).length;
 
                 const underpopulated = aliveNeighbors < 2;
@@ -150,8 +139,38 @@ export class MainScene extends Scene {
         }
     }
 
+    private getNeighbors(grid: boolean[][], x: number, y: number) {
+        const top = grid[x][y - 1];
+        const right = grid[x + 1][y];
+        const bottom = grid[x][y + 1];
+        const left = grid[x - 1][y];
+        const topLeft = grid[x - 1][y - 1];
+        const topRight = grid[x + 1][y - 1];
+        const bottomRight = grid[x + 1][y + 1];
+        const bottomLeft = grid[x - 1][y + 1];
+        return [
+            top,
+            right,
+            bottom,
+            left,
+            topLeft,
+            topRight,
+            bottomRight,
+            bottomLeft,
+        ];
+    }
+
     public undo() {
         if (this.generation === 0) return;
+        this.grid.forEach((row) =>
+            row.forEach((cell) => {
+                const previouslyAlive =
+                    this.history[this.generation - 1][cell.xIndex][cell.yIndex];
+                if (previouslyAlive) revive(cell)();
+                else die(cell)();
+            })
+        );
+        this.generation--;
     }
 
     private pushCurrentGridToHistory() {
