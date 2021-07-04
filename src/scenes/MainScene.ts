@@ -1,6 +1,7 @@
 import { GUI } from "dat.gui";
 import { Cameras, GameObjects, Scene } from "phaser";
 import { Color } from "../styles/Color";
+import { glider, lightWeightSpaceship } from "./patterns";
 import { Scenes } from "./Scenes";
 
 type Rect = GameObjects.Rectangle & {
@@ -8,6 +9,8 @@ type Rect = GameObjects.Rectangle & {
     xIndex: number;
     yIndex: number;
 };
+
+type Pattern = "none" | "Glider" | "Light Ship";
 
 const config = {
     author: "Mirco Kraenz",
@@ -47,6 +50,7 @@ export class MainScene extends Scene {
     private history!: boolean[][][]; // complete history of the grid, history[1] is the grid after 1 iteration
     private stepSize!: number;
     private controls!: Cameras.Controls.SmoothedKeyControl;
+    private pattern!: Pattern;
 
     public constructor() {
         super({ key: Scenes.Main });
@@ -57,6 +61,7 @@ export class MainScene extends Scene {
         this.grid = [];
         this.history = [[]];
         this.stepSize = 1;
+        this.pattern = "none";
 
         this.addCameraControls();
         this.addMouseZoomControls();
@@ -125,6 +130,13 @@ export class MainScene extends Scene {
         this.gui.add(this, "stepSize", 1, 100).step(1).name("step size");
         this.gui.add(this, "manyTicks").name("many ticks()");
         this.gui.add(this, "undoMany").name("undo many()");
+        const modes: Pattern[] = ["none", "Glider", "Light Ship"];
+        this.gui
+            .add(this, "pattern", modes)
+            .name("pattern")
+            .onChange((mode: Pattern) => {
+                this.pattern = mode;
+            });
         const more = this.gui.addFolder("more");
 
         more.add(this, "restart").name("reset all()");
@@ -132,6 +144,30 @@ export class MainScene extends Scene {
         more.add(config, "author");
         more.add(this, "gotoGithubRepo").name("open GitHub Repo");
         more.add(this, "gotoWikipedia").name("patterns on Wiki");
+    }
+
+    public addPatternCells(
+        pattern: Array<{ x: number; y: number }>,
+        cell: Rect
+    ) {
+        for (const part of pattern) {
+            const x = cell.xIndex + part.x;
+            const y = cell.yIndex + part.y;
+            const outOfBounds =
+                x < 0 ||
+                x > maxCellsPerRow - 1 ||
+                y < 0 ||
+                y > maxCellsPerRow - 1;
+            if (outOfBounds) continue;
+            revive(this.grid[x][y])();
+        }
+    }
+
+    public addPattern(cell: Rect) {
+        if (this.pattern === "none") toggleAlive(cell)();
+        if (this.pattern === "Glider") this.addPatternCells(glider, cell);
+        if (this.pattern === "Light Ship")
+            this.addPatternCells(lightWeightSpaceship, cell);
     }
 
     private initGrid() {
@@ -152,7 +188,9 @@ export class MainScene extends Scene {
                 this.grid[xIndex][yIndex] = rect;
                 this.history[this.generation][xIndex][yIndex] = rect.alive;
 
-                rect.setInteractive().on("pointerup", toggleAlive(rect));
+                rect.setInteractive().on("pointerup", () =>
+                    this.addPattern(rect)
+                );
             }
         }
     }
@@ -219,16 +257,19 @@ export class MainScene extends Scene {
         ];
     }
 
+    public forAllCells(fn: (cell: Rect) => void) {
+        this.grid.forEach((row) => row.forEach(fn));
+    }
+
     public undo() {
         if (this.generation === 0) return;
-        this.grid.forEach((row) =>
-            row.forEach((cell) => {
-                const previouslyAlive =
-                    this.history[this.generation - 1][cell.xIndex][cell.yIndex];
-                if (previouslyAlive) revive(cell)();
-                else die(cell)();
-            })
-        );
+        const fn = (cell: Rect) => {
+            const previouslyAlive =
+                this.history[this.generation - 1][cell.xIndex][cell.yIndex];
+            if (previouslyAlive) revive(cell)();
+            else die(cell)();
+        };
+        this.forAllCells(fn);
         this.generation--;
     }
 
