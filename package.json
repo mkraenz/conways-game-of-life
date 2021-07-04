@@ -1,6 +1,6 @@
 {
     "name": "conways-game-of-life",
-    "version": "0.1.0",
+    "version": "0.3.0",
     "description": "Conway's Game of Life as a Webpage in Phaser3 and TypeScript",
     "license": "MIT",
     "scripts": {

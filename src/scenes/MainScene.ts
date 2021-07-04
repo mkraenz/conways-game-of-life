@@ -1,5 +1,5 @@
 import { GUI } from "dat.gui";
-import { GameObjects, Scene } from "phaser";
+import { Cameras, GameObjects, Scene } from "phaser";
 import { Color } from "../styles/Color";
 import { Scenes } from "./Scenes";
 
@@ -36,6 +36,9 @@ const die = (rect: Rect) => () => {
     log(`cell ${rect.xIndex},${rect.yIndex} dead`);
 };
 
+const maxCam = 4096;
+const maxCellsPerRow = 5000 / 50;
+
 export class MainScene extends Scene {
     // using definite assignment operator + initialization in create() so that on restart() everything gets newly initiated automatically
     private gui!: GUI;
@@ -43,6 +46,7 @@ export class MainScene extends Scene {
     private grid!: Rect[][];
     private history!: boolean[][][]; // complete history of the grid, history[1] is the grid after 1 iteration
     private stepSize!: number;
+    private controls!: Cameras.Controls.SmoothedKeyControl;
 
     public constructor() {
         super({ key: Scenes.Main });
@@ -53,10 +57,65 @@ export class MainScene extends Scene {
         this.grid = [];
         this.history = [[]];
         this.stepSize = 1;
+
+        this.addCameraControls();
+        this.addMouseZoomControls();
+
         this.input.keyboard.on("keydown-R", () => this.restart());
 
         this.initGrid();
         this.setupGUI();
+    }
+
+    private addCameraControls() {
+        const cursors = this.input.keyboard.createCursorKeys();
+        const controlConfig = {
+            camera: this.cameras.main,
+            left: cursors.left,
+            right: cursors.right,
+            up: cursors.up,
+            down: cursors.down,
+            acceleration: 1,
+            drag: 1,
+            maxSpeed: 1.0,
+        };
+        this.controls = new Phaser.Cameras.Controls.SmoothedKeyControl(
+            controlConfig
+        );
+        this.cameras.main.setBounds(0, 0, maxCam, maxCam).setZoom(1);
+    }
+
+    private addMouseZoomControls() {
+        this.input.on(
+            "wheel",
+            (
+                pointer: never,
+                gameobject: never,
+                dx: number,
+                dy: number,
+                dz: number
+            ) => {
+                const zoomStepSize = 0.1;
+                const maxZoom = 2;
+                const minZoom = 0.3;
+
+                const isZoomOut = dy > 0;
+                const isZoomIn = dy < 0;
+                if (
+                    isZoomOut &&
+                    this.cameras.main.zoom > minZoom + zoomStepSize
+                ) {
+                    this.cameras.main.zoom -= zoomStepSize;
+                }
+                if (isZoomIn && this.cameras.main.zoom < maxZoom) {
+                    this.cameras.main.zoom += zoomStepSize;
+                }
+            }
+        );
+    }
+
+    public update(time: number, delta: number) {
+        this.controls.update(delta);
     }
 
     private setupGUI() {
@@ -76,11 +135,11 @@ export class MainScene extends Scene {
     }
 
     private initGrid() {
-        for (let xIndex = 0; xIndex < 2000 / 50; xIndex++) {
+        for (let xIndex = 0; xIndex < maxCellsPerRow; xIndex++) {
             this.grid[xIndex] = [];
             this.history[this.generation][xIndex] = [];
 
-            for (let yIndex = 0; yIndex < 2000 / 50; yIndex++) {
+            for (let yIndex = 0; yIndex < maxCellsPerRow; yIndex++) {
                 const y = yIndex * 50;
                 const x = xIndex * 50;
 
