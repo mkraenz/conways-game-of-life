@@ -1,5 +1,9 @@
 # Conway's Game of Life
 
+## Start using it NOW for FREE and right IN YOUR BROWSER
+
+https://prosingularity.github.io/conways-game-of-life/
+
 ## More from the author
 
 We are building a Twitch Chat-based Turn-based Battle game at [TypeScript Teatime](https://www.twitch.tv/typescriptteatime) with Phaser3. Join us on [Twitch](https://www.twitch.tv/typescriptteatime) for weekly coding action!
