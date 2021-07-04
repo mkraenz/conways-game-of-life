@@ -9,25 +9,32 @@ type Rect = GameObjects.Rectangle & {
     yIndex: number;
 };
 
+const config = {
+    author: "Mirco Kraenz",
+    debug: false,
+};
+
+const log = (...args: Parameters<typeof console["log"]>) => {
+    if (config.debug) console.log(args);
+};
+
 const toggleAlive = (rect: Rect) => () => {
     rect.alive = !rect.alive;
     rect.setFillStyle(rect.alive ? Color.Green : undefined);
-    console.log(`cell ${rect.xIndex},${rect.yIndex} alive: ${rect.alive}`);
+    log(`cell ${rect.xIndex},${rect.yIndex} alive: ${rect.alive}`);
 };
 
 const revive = (rect: Rect) => () => {
     rect.alive = true;
     rect.setFillStyle(rect.alive ? Color.Green : undefined);
-    console.log(`cell ${rect.xIndex},${rect.yIndex} revived`);
+    log(`cell ${rect.xIndex},${rect.yIndex} revived`);
 };
 
 const die = (rect: Rect) => () => {
     rect.alive = false;
     rect.setFillStyle(rect.alive ? Color.Green : undefined);
-    console.log(`cell ${rect.xIndex},${rect.yIndex} died`);
+    log(`cell ${rect.xIndex},${rect.yIndex} dead`);
 };
-
-const author = { author: "Mirco Kraenz" };
 
 export class MainScene extends Scene {
     // using definite assignment operator + initialization in create() so that on restart() everything gets newly initiated automatically
@@ -55,12 +62,14 @@ export class MainScene extends Scene {
     private setupGUI() {
         this.gui = new GUI({ closeOnTop: true, hideable: true });
         this.gui.add(this, "nextTick").name("single tick()");
+        // this.gui.add(this, "undo").name("undo()");
         this.gui.add(this, "stepSize", 1, 100).step(1).name("step size");
         this.gui.add(this, "manyTicks").name("many ticks()");
         const more = this.gui.addFolder("more");
 
         more.add(this, "restart").name("reset all()");
-        more.add(author, "author");
+        more.add(config, "debug").name("print debug logs");
+        more.add(config, "author");
         more.add(this, "gotoGithubRepo").name("open GitHub Repo");
         more.add(this, "gotoWikipedia").name("patterns on Wiki");
     }
@@ -98,17 +107,11 @@ export class MainScene extends Scene {
         this.pushCurrentGridToHistory();
 
         this.generation++;
-        console.log(`starting iteration ${this.generation}`);
+        log(`starting iteration ${this.generation}`);
 
         const grid = this.history[this.generation - 1];
-        for (let x = 0; x < grid.length; x++) {
-            for (let y = 0; y < grid[0].length; y++) {
-                const isBorderCell =
-                    !x || !y || x === grid.length - 1 || y === grid.length - 1;
-                if (isBorderCell) {
-                    continue;
-                }
-
+        for (let x = 1; x < grid.length - 1; x++) {
+            for (let y = 1; y < grid[0].length - 1; y++) {
                 // important manipulate the cell from the next iteration
                 const cell = this.grid[x][y];
 
@@ -133,19 +136,22 @@ export class MainScene extends Scene {
 
                 const aliveNeighbors = neightbors.filter((c) => c).length;
 
-                const isUnderpopulated = aliveNeighbors < 2;
+                const underpopulated = aliveNeighbors < 2;
                 const overpopulated = aliveNeighbors > 3;
                 const cellSurvives =
                     (cell.alive && aliveNeighbors === 2) ||
                     aliveNeighbors === 3;
-                if (isUnderpopulated || overpopulated) {
-                    die(cell)();
-                }
-                if (!cell.alive && aliveNeighbors === 3) {
-                    revive(cell)();
-                }
+                const idealGrowthConditions =
+                    !cell.alive && aliveNeighbors === 3;
+
+                if (underpopulated || overpopulated) die(cell)();
+                if (idealGrowthConditions) revive(cell)();
             }
         }
+    }
+
+    public undo() {
+        if (this.generation === 0) return;
     }
 
     private pushCurrentGridToHistory() {
@@ -173,7 +179,7 @@ export class MainScene extends Scene {
     }
 
     private restart() {
-        console.log("restarted");
+        log("restarted");
         this.gui.destroy();
         this.scene.restart();
     }
